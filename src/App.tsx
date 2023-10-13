@@ -6,6 +6,7 @@ import Comment from "./model/Comment";
 import { useDatabase, withObservables } from "@nozbe/watermelondb/react";
 import Post from "./model/Post";
 import { Query } from "@nozbe/watermelondb";
+import { Observable } from "@nozbe/watermelondb/utils/rx";
 
 function App() {
   const [post, setPost] = useState<Post | null>(null);
@@ -56,11 +57,13 @@ const enhanceComment = withObservables(["comment"], ({ comment }) => ({
 
 const EnhancedComment = enhanceComment(CommentItem);
 
-const PostItem: React.FC<{ post: Post; comments: Comment[] }> = ({
-  post,
-  comments,
-}) => {
+const PostItem: React.FC<{ post: Post }> = ({ post: post$ }) => {
   // const database = useDatabase();
+  const post = useObservable(post$.observe(), post$);
+  const comments = useObservable(post$.comments.observe(), []);
+
+  console.log({ post, comments });
+
   return (
     <article>
       <h1>{post.title}</h1>
@@ -93,12 +96,29 @@ const PostItem: React.FC<{ post: Post; comments: Comment[] }> = ({
   );
 };
 
-const enhancePost = withObservables<
-  { post: Post },
-  { post: Post; comments: Query<Comment> }
->(["post"], ({ post }) => ({
-  post,
-  comments: post.comments, // Shortcut syntax for `post.comments.observe()`
-}));
+// const enhancePost = withObservables<
+//   { post: Post },
+//   { post: Post; comments: Query<Comment> }
+// >(["post"], ({ post }) => ({
+//   post,
+//   comments: post.comments, // Shortcut syntax for `post.comments.observe()`
+// }));
 
-const EnhancedPost = enhancePost(PostItem);
+// const EnhancedPost = enhancePost(PostItem);
+const EnhancedPost = PostItem;
+
+function useObservable(
+  observable: Observable,
+  initial?: any,
+  deps: any[] = []
+) {
+  const [state, setState] = useState(initial);
+
+  useEffect(() => {
+    const subscription = observable.subscribe(setState);
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return state;
+}
