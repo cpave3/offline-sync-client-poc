@@ -24,7 +24,7 @@ function App() {
   useEffect(() => {
     async function init() {
       const collection = database.get<Post>("posts");
-      // get the first record
+      // get the first record. there must be a better way to do this though
       collection
         .query()
         .observe()
@@ -59,16 +59,39 @@ const EnhancedComment = enhanceComment(CommentItem);
 const PostItem: React.FC<{ post: Post; comments: Comment[] }> = ({
   post,
   comments,
-}) => (
-  <article>
-    <h1>{post.title}</h1>
-    <p>{post.body}</p>
-    <h2>Comments</h2>
-    {comments.map((comment) => (
-      <EnhancedComment key={comment.id} comment={comment} />
-    ))}
-  </article>
-);
+}) => {
+  // const database = useDatabase();
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+      <h2>Comments</h2>
+      {comments.map((comment) => (
+        <EnhancedComment key={comment.id} comment={comment} />
+      ))}
+
+      {/* delete post button */}
+      {/* <button
+        onClick={async () => {
+          database.write(async () => {
+            await post.markAsDeleted(); // syncable
+          });
+        }}
+      >
+        Delete Post
+      </button> */}
+
+      {/* add comment button */}
+      <button
+        onClick={async () => {
+          await post.addComment("test comment" + Math.random());
+        }}
+      >
+        Add Comment
+      </button>
+    </article>
+  );
+};
 
 const enhancePost = withObservables<
   { post: Post },

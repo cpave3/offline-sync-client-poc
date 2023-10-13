@@ -1,7 +1,7 @@
 // model/Post.js
 import { Model, Query } from '@nozbe/watermelondb'
 import { Associations } from '@nozbe/watermelondb/Model'
-import { field, text, date, children } from '@nozbe/watermelondb/decorators'
+import { field, text, date, children, writer } from '@nozbe/watermelondb/decorators'
 import Comment from './Comment'
 
 export default class Post extends Model {
@@ -17,6 +17,16 @@ export default class Post extends Model {
   @date('archived_at') archivedAt: Date
 
   @children('comments') comments: Query<Comment>
+
+
+  // writer function to add comment
+  @writer async addComment(body: string) {
+    const comment = await this.collections.get('comments').create((comment) => {
+      comment.post.set(this)
+      comment.body = body
+    })
+    return comment;
+  }
 
   // derived field
   get isRecentlyArchived() {
