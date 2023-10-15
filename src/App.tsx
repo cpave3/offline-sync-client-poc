@@ -7,47 +7,54 @@ import { useDatabase, withObservables } from "@nozbe/watermelondb/react";
 import Post from "./model/Post";
 import { Query } from "@nozbe/watermelondb";
 import { Observable } from "@nozbe/watermelondb/utils/rx";
+import Task from "./model/Task";
+import TaskInspection from "./model/TaskInspection";
 
 function App() {
   // const [post, setPost] = useState<Post | null>(null);
 
   const database = useDatabase();
-  const posts = useObservable(
-    database.collections.get<Post>("posts").query().observe(),
+  const tasks = useObservable(
+    database.collections.get<Task>("tasks").query().observe(),
     []
   );
 
-  async function createPost() {
+  async function createTask() {
     await database.write(async () => {
-      const newPost = await database.get<Post>("posts").create((post) => {
-        (post.title = "New post"), (post.body = "Lorem ipsum...");
+      const task = await database.get<Task>("tasks").create((task) => {
+        (task.summary = "New post"), (task.description = "Lorem ipsum...");
       });
 
-      // setPost(newPost);
+      await database
+        .get<TaskInspection>("task_inspections")
+        .create((taskInspection) => {
+          taskInspection.task.set(task);
+          taskInspection.agreementEndDate = new Date().toDateString();
+        });
     });
   }
 
-  // useEffect(() => {
-  //   async function init() {
-  //     const collection = database.get<Post>("posts");
-  //     // get the first record. there must be a better way to do this though
-  //     collection
-  //       .query()
-  //       .observe()
-  //       .subscribe((posts) => {
-  //         setPost(posts[0]);
-  //       });
-  //   }
-  //   init();
-  // }, []);
+  console.log({ tasks });
 
   return (
     <div>
-      <h1>Posts</h1>
-      {posts.map((post) => (
-        <EnhancedPost key={post.id} post={post} />
+      <h1>Tasks</h1>
+      {tasks.map((task) => (
+        <EnhancedTask key={task.id} task={task} />
       ))}
-      <button onClick={createPost}>Create Post</button>
+      <br />
+      {/* green button with tailwind */}
+      <button onClick={createTask}>Create Task</button>
+      {/* reset database */}
+      {/* <button
+        onClick={async () => {
+          await database.write(async () => {
+            await database.unsafeResetDatabase();
+          });
+        }}
+      >
+        Reset DB
+      </button> */}
     </div>
   );
 
@@ -72,66 +79,91 @@ const enhanceComment = withObservables(["comment"], ({ comment }) => ({
 
 const EnhancedComment = enhanceComment(CommentItem);
 
-const PostItem: React.FC<{ post: Post }> = ({ post: post$ }) => {
+const TaskItem: React.FC<{ task: Task }> = ({ task: task$ }) => {
   const database = useDatabase();
-  const post = useObservable(post$.observe(), post$);
-  const comments = useObservable(post$.comments.observe(), []);
+  const task = useObservable(task$?.observe(), task$);
+  // const comments = useObservable(task$.comments.observe(), []);
+  const taskInspections$ = useObservable(
+    task.taskInspectionQuery.observe(),
+    []
+  );
 
-  console.log({ post, comments });
+  // need to get the first task inspection result
+  const [taskInspection, setTaskInspection] = useState<TaskInspection | null>(
+    null
+  );
+  useEffect(() => {
+    setTaskInspection(taskInspections$[0]);
+  }, [taskInspections$]);
+
+  const rooms = useObservable(
+    taskInspection?.rooms.observe(),
+    [],
+    [taskInspection] // getting kind of scary, but without proper 1:1 relationship, this works
+  );
+
+  // console.log({ post: task, comments });
+
+  console.log({ task, task$ });
+
+  if (!task) {
+    return <div>loading...</div>;
+  }
 
   return (
     <article>
-      <h1>{post.title}</h1>
-      <p>{post.body}</p>
-      <h2>Comments</h2>
-      {comments.map((comment) => (
-        <EnhancedComment key={comment.id} comment={comment} />
-      ))}
+      <h1>{task.summary}</h1>
+      <p>{task.description}</p>
+      <h2>sub task</h2>
+      {!!taskInspection && (
+        <div key={taskInspection.id}>
+          <p>{taskInspection.agreementEndDate}</p>
+          {/* add room button */}
+          <button
+            onClick={async () => {
+              const room = await taskInspection.addRoom(
+                "Room: " + Math.random()
+              );
+              console.log({ room });
+            }}
+          >
+            Add Room
+          </button>
+          <br />
+          {rooms.map((room) => (
+            <div key={room.id}>
+              <p>{room.title}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* delete post button */}
       <button
         onClick={async () => {
           database.write(async () => {
-            await post.markAsDeleted(); // syncable
+            await task.markAsDeleted(); // syncable
           });
         }}
       >
-        Delete Post
-      </button>
-
-      {/* add comment button */}
-      <button
-        onClick={async () => {
-          await post.addComment("test comment" + Math.random());
-        }}
-      >
-        Add Comment
+        Delete Task
       </button>
     </article>
   );
 };
 
-// const enhancePost = withObservables<
-//   { post: Post },
-//   { post: Post; comments: Query<Comment> }
-// >(["post"], ({ post }) => ({
-//   post,
-//   comments: post.comments, // Shortcut syntax for `post.comments.observe()`
-// }));
+const EnhancedTask = TaskItem;
 
-// const EnhancedPost = enhancePost(PostItem);
-const EnhancedPost = PostItem;
-
-function useObservable(
-  observable: Observable,
-  initial?: any,
+function useObservable<TType>(
+  observable: Observable<TType>,
+  initial?: TType,
   deps: any[] = []
-) {
+): TType {
   const [state, setState] = useState(initial);
 
   useEffect(() => {
-    const subscription = observable.subscribe(setState);
-    return () => subscription.unsubscribe();
+    const subscription = observable?.subscribe(setState);
+    return () => subscription?.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 

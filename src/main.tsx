@@ -11,6 +11,9 @@ import migrations from "./model/migrations";
 import Post from "./model/Post.ts";
 import DatabaseProvider from "@nozbe/watermelondb/react/DatabaseProvider";
 import Comment from "./model/Comment.ts";
+import Task from "./model/Task.ts";
+import TaskInspection from "./model/TaskInspection.ts";
+import Room from "./model/Room.ts";
 // import Post from './model/Post' // ⬅️ You'll import your Models here
 
 // First, create the adapter to the underlying database:
@@ -54,6 +57,9 @@ const database = new Database({
   modelClasses: [
     Post, // ⬅️ You'll add Models to Watermelon here
     Comment,
+    Task,
+    TaskInspection,
+    Room,
   ],
 });
 

@@ -20,5 +20,30 @@ export const mySchema = appSchema({
         { name: 'post_id', type: 'string', isIndexed: true },
       ]
     }),
+    tableSchema({
+      name: 'tasks',
+      columns: [
+        {
+          name: 'summary', type: 'string',
+        },
+        { name: 'description', type: 'string', isOptional: true },
+        { name: 'task_type_id', type: 'string' },
+        // { name: 'taskable_id', type: 'string', isIndexed: true },
+      ]
+    }),
+    tableSchema({
+      name: 'task_inspections',
+      columns: [
+        { name: 'agreement_end_date', type: 'string' },
+        { name: 'task_id', type: 'string', isIndexed: true },
+      ],
+    }),
+    tableSchema({
+      name: 'rooms',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'inspection_id', type: 'string', isIndexed: true }, // contrived, this isn't how the relationship would actually be...
+      ],
+    }),
   ]
 })
