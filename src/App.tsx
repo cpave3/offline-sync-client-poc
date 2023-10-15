@@ -9,8 +9,13 @@ import { Query } from "@nozbe/watermelondb";
 import { Observable } from "@nozbe/watermelondb/utils/rx";
 
 function App() {
-  const [post, setPost] = useState<Post | null>(null);
+  // const [post, setPost] = useState<Post | null>(null);
+
   const database = useDatabase();
+  const posts = useObservable(
+    database.collections.get<Post>("posts").query().observe(),
+    []
+  );
 
   async function createPost() {
     await database.write(async () => {
@@ -18,29 +23,39 @@ function App() {
         (post.title = "New post"), (post.body = "Lorem ipsum...");
       });
 
-      setPost(newPost);
+      // setPost(newPost);
     });
   }
 
-  useEffect(() => {
-    async function init() {
-      const collection = database.get<Post>("posts");
-      // get the first record. there must be a better way to do this though
-      collection
-        .query()
-        .observe()
-        .subscribe((posts) => {
-          setPost(posts[0]);
-        });
-    }
-    init();
-  }, []);
+  // useEffect(() => {
+  //   async function init() {
+  //     const collection = database.get<Post>("posts");
+  //     // get the first record. there must be a better way to do this though
+  //     collection
+  //       .query()
+  //       .observe()
+  //       .subscribe((posts) => {
+  //         setPost(posts[0]);
+  //       });
+  //   }
+  //   init();
+  // }, []);
 
-  if (!post) {
-    return <button onClick={createPost}>Create Post</button>;
-  }
+  return (
+    <div>
+      <h1>Posts</h1>
+      {posts.map((post) => (
+        <EnhancedPost key={post.id} post={post} />
+      ))}
+      <button onClick={createPost}>Create Post</button>
+    </div>
+  );
 
-  return <EnhancedPost post={post} />;
+  // if (!post) {
+  // return <button onClick={createPost}>Create Post</button>;
+  // }
+
+  // return <EnhancedPost post={post} />;
 }
 
 export default App;
@@ -58,7 +73,7 @@ const enhanceComment = withObservables(["comment"], ({ comment }) => ({
 const EnhancedComment = enhanceComment(CommentItem);
 
 const PostItem: React.FC<{ post: Post }> = ({ post: post$ }) => {
-  // const database = useDatabase();
+  const database = useDatabase();
   const post = useObservable(post$.observe(), post$);
   const comments = useObservable(post$.comments.observe(), []);
 
@@ -74,7 +89,7 @@ const PostItem: React.FC<{ post: Post }> = ({ post: post$ }) => {
       ))}
 
       {/* delete post button */}
-      {/* <button
+      <button
         onClick={async () => {
           database.write(async () => {
             await post.markAsDeleted(); // syncable
@@ -82,7 +97,7 @@ const PostItem: React.FC<{ post: Post }> = ({ post: post$ }) => {
         }}
       >
         Delete Post
-      </button> */}
+      </button>
 
       {/* add comment button */}
       <button
