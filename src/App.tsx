@@ -9,6 +9,7 @@ import { Query } from "@nozbe/watermelondb";
 import { Observable } from "@nozbe/watermelondb/utils/rx";
 import Task from "./model/Task";
 import TaskInspection from "./model/TaskInspection";
+import { mySync } from "./sync";
 
 function App() {
   // const [post, setPost] = useState<Post | null>(null);
@@ -55,6 +56,14 @@ function App() {
       >
         Reset DB
       </button> */}
+      {/* sync button */}
+      <button
+        onClick={async () => {
+          await mySync(database);
+        }}
+      >
+        Sync
+      </button>
     </div>
   );
 
